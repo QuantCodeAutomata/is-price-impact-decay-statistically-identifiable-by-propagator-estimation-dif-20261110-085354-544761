@@ -3,8 +3,7 @@
 All parameters are module-level constants, grouped by experiment. Each one
 carries a comment stating its meaning, its unit, and its source: either a
 paper equation/section, or "not specified in the paper" when the paper
-leaves the value open (an uncertainty already flagged while retrieving the
-methodology). No parameter is defined inside a class or a dict.
+leaves the value open. No parameter is defined inside a class or a dict.
 """
 
 # ---------------------------------------------------------------------------
@@ -18,11 +17,10 @@ IMPACT_EXPONENT_DELTA = 0.5  # delta in I(Q) = Q^delta (Eq. 10); square-root law
 # ---------------------------------------------------------------------------
 EXP1_ALPHAS = (1.25, 1.5, 1.75)  # metaorder-size exponents tested in Fig. 2
 
-# Simulation length in steps (child orders). The paper's implementation notes
-# state that 10^5-10^7 steps are needed for reliable large-lag estimation,
-# without giving the exact value used for Fig. 2 (recorded uncertainty). The
-# vectorized estimator keeps this length inexpensive, so the executed run
-# uses the upper end of the suggested range directly (no reduction needed).
+# Simulation length in steps (child orders). The paper states that 10^5-10^7
+# steps are needed for reliable large-lag estimation, without giving the
+# exact value used for Fig. 2. The vectorized estimator keeps this length
+# inexpensive, so the run uses the upper end of the paper's range directly.
 EXP1_N_STEPS_PAPER = 10_000_000  # upper end of the paper's suggested range
 EXP1_N_STEPS_RUN = 10_000_000  # executed length; equals the paper range upper end
 

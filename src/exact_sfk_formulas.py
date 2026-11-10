@@ -16,8 +16,8 @@ Exact response increment (Eq. 408-409):
             (1 - lambda + lambda e^{-(x+y)})^{n-1} / ((e^x - 1)(e^{x+y} - 1)),  n >= 1
     S_0 = zeta(alpha - delta + 1) / zeta(alpha)
 
-Here lambda = 1/M is the per-step selection intensity of a splitter; the
-paper's selected experiments use M = 1, i.e. lambda = 1.
+Here lambda = 1/M is the per-step selection intensity of a splitter; both
+experiments reproduced here use M = 1, i.e. lambda = 1.
 """
 
 from __future__ import annotations

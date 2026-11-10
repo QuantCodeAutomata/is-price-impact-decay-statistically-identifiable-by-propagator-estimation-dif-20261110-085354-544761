@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Runs the test suite and both selected experiments, exactly as in README.md.
+# Runs the test suite and both experiments, exactly as in README.md.
 set -uo pipefail
 
 python -m pytest -m "not market_data"

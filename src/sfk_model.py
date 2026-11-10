@@ -71,9 +71,10 @@ def simulate_sfk(
 ) -> SFKSimulation:
     """Simulate n_steps of the SFK model with a single metaorder splitter.
 
-    Only M = 1 is implemented: the paper's selected experiments (Fig. 2 and
-    Fig. 3) both use M = 1 (single metaorder splitter), so the round-robin
-    scheduling across M > 1 traders of Eq. (397)-(398) is not required here.
+    Only M = 1 is implemented: the experiments reproduced here (Fig. 2 and
+    Fig. 3 of the paper) both use M = 1 (single metaorder splitter), so the
+    round-robin scheduling across M > 1 traders of Eq. (397)-(398) is not
+    required here.
 
     Args:
         alpha: Metaorder-size distribution exponent, alpha in (1, 2).
@@ -89,7 +90,7 @@ def simulate_sfk(
     if m_splitters != 1:
         raise NotImplementedError(
             "Only M = 1 (single metaorder splitter) is implemented; "
-            "both selected experiments use M = 1."
+            "both experiments reproduced here use M = 1."
         )
     if n_steps <= 0:
         raise ValueError("n_steps must be a positive integer")

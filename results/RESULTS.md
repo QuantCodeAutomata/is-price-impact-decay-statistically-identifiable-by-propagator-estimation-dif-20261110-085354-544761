@@ -135,8 +135,8 @@ cause was not isolated further within this replication's component checks
 
 ## Deviations from the paper
 
-- **Simulation length and number of seeds.** The paper's implementation notes
-  state that `10^5`-`10^7` steps are needed for reliable large-lag estimation
+- **Simulation length and number of seeds.** The paper states that `10^5`-`10^7`
+  steps are needed for reliable large-lag estimation
   without giving the exact value used for Fig. 2 or Fig. 3, and do not state
   the number of independent sample paths averaged. Both experiments use the
   upper end of the suggested range (`10^7` steps) and 20 independent seeds
@@ -154,8 +154,8 @@ cause was not isolated further within this replication's component checks
   `EXP2_MIN_SEGMENT_LAGS`), since applying a fixed 50-segment truncation
   would make the available lag range inconsistent across the tested D values.
 - **Wiener-Hopf solution method.** Not specified by the paper; solved as a
-  Toeplitz linear system with `scipy.linalg.solve_toeplitz`, as suggested by
-  the paper's own implementation notes.
+  Toeplitz linear system with `scipy.linalg.solve_toeplitz`, consistent with
+  the Toeplitz structure `C(|tau-tau'|)` of Eq. 4b.
 - **Volume imbalance `Q_k^(D)`.** The paper's Eq. 19 defines
   `Psi_k^(D) = sign(Q_k^(D)) |Q_k^(D)|^(1/2)` without spelling out whether
   `Q_k^(D)` is the net signed executed volume inside segment `k` or a sum of
