@@ -29,6 +29,7 @@ Psi_{l-k}^{(D)}] by the same Wiener-Hopf deconvolution as the linear case
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 
 import numpy as np
@@ -208,6 +209,81 @@ def estimate_nonlinear_propagator_mc(
     )
     autocorrelation = autocorrelations.mean(axis=0)
     response_increment = response_increments.mean(axis=0)
+
+    kernel_increment_trunc = solve_wiener_hopf(
+        autocorrelation[: wh_truncation + 1], response_increment[: wh_truncation + 1]
+    )
+    kernel_increment = np.full(max_lag_segments + 1, np.nan)
+    kernel_increment[: wh_truncation + 1] = kernel_increment_trunc
+    propagator_trunc = propagator_from_kernel(kernel_increment_trunc)
+    propagator = np.full(max_lag_segments + 1, np.nan)
+    propagator[: wh_truncation + 1] = propagator_trunc
+
+    segment_lags = np.arange(max_lag_segments + 1)
+    return NonlinearPropagatorResult(
+        segment_lags=segment_lags,
+        lags=segment_lags * segment_length,
+        autocorrelation=autocorrelation,
+        response_increment=response_increment,
+        kernel_increment=kernel_increment,
+        propagator=propagator,
+    )
+
+
+def estimate_nonlinear_propagator_mc_streaming(
+    simulations: Iterable[SFKSimulation],
+    segment_length: int,
+    max_lag_segments: int,
+    wh_truncation: int | None = None,
+) -> NonlinearPropagatorResult:
+    """Streaming Monte Carlo version of estimate_nonlinear_propagator_mc.
+
+    Consumes ``simulations`` one sample path at a time (e.g. from
+    data.generate_synthetic.iter_sfk_samples), accumulating the running sums
+    needed for the across-path average of C_k^{(D)} and S_k^{(D)} (Eq. 20)
+    without holding more than one sample path (and its segmentation) in
+    memory simultaneously.
+
+    Args:
+        simulations: Iterable (list or generator) of independent SFK sample
+            paths (same alpha, delta).
+        segment_length: Segment length D (simulation steps per segment).
+        max_lag_segments: Largest segment-count lag k at which C_k^{(D)} and
+            S_k^{(D)} are estimated.
+        wh_truncation: Truncation of the Wiener-Hopf sum in segment-count
+            units; defaults to max_lag_segments.
+
+    Returns:
+        A NonlinearPropagatorResult built from the across-path average of
+        C_k^{(D)}, S_k^{(D)}.
+    """
+    if wh_truncation is None:
+        wh_truncation = max_lag_segments
+    if wh_truncation > max_lag_segments:
+        raise ValueError("wh_truncation cannot exceed max_lag_segments")
+
+    autocorrelation_sum = np.zeros(max_lag_segments + 1)
+    response_increment_sum = np.zeros(max_lag_segments + 1)
+    n_paths = 0
+    for sim in simulations:
+        segmented = segment_metaorder_proxies(sim, segment_length)
+        n_segments = segmented.signed_sqrt_imbalance.shape[0]
+        if max_lag_segments >= n_segments:
+            raise ValueError(
+                f"max_lag_segments={max_lag_segments} must be < number of segments={n_segments}"
+            )
+        autocorrelation_sum += sample_autocorrelation(
+            segmented.signed_sqrt_imbalance, max_lag_segments
+        )
+        response_increment_sum += sample_cross_correlation(
+            segmented.segment_return, segmented.signed_sqrt_imbalance, max_lag_segments
+        )
+        n_paths += 1
+    if n_paths == 0:
+        raise ValueError("simulations must be a non-empty iterable")
+
+    autocorrelation = autocorrelation_sum / n_paths
+    response_increment = response_increment_sum / n_paths
 
     kernel_increment_trunc = solve_wiener_hopf(
         autocorrelation[: wh_truncation + 1], response_increment[: wh_truncation + 1]

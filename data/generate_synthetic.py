@@ -8,6 +8,8 @@ model dynamics themselves live in src/sfk_model.py.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+
 import numpy as np
 
 from src.sfk_model import SFKSimulation, simulate_sfk
@@ -55,3 +57,29 @@ def generate_sfk_samples(
         )
         for i in range(n_seeds)
     ]
+
+
+def iter_sfk_samples(
+    alpha: float,
+    delta: float,
+    n_steps: int,
+    n_seeds: int,
+    base_seed: int,
+    m_splitters: int = 1,
+) -> Iterator[SFKSimulation]:
+    """Yield n_seeds independent SFK sample paths one at a time.
+
+    Same draws as generate_sfk_samples (seeds base_seed, ..., base_seed +
+    n_seeds - 1) but without holding more than one sample path in memory at
+    once, for Monte Carlo averages over long, memory-heavy simulations
+    (paper's suggested length of up to 10^7 steps per path, Sec. "SFK model
+    as a null model").
+    """
+    for i in range(n_seeds):
+        yield generate_sfk_sample(
+            alpha=alpha,
+            delta=delta,
+            n_steps=n_steps,
+            seed=base_seed + i,
+            m_splitters=m_splitters,
+        )

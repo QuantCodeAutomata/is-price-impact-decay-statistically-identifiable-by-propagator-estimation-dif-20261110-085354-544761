@@ -9,6 +9,7 @@ path, using the shared estimators in src/wiener_hopf.py.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 
 import numpy as np
@@ -78,6 +79,68 @@ def estimate_linear_propagator(
     # obtained directly as the sign/increment cross-correlation (avoids
     # differencing noisy partial sums of the non-stationary price path).
     response_increment = sample_cross_correlation(signs, increments, max_lag)
+    response_function = np.concatenate(([0.0], np.cumsum(response_increment)[:-1]))
+
+    kernel_increment_trunc = solve_wiener_hopf(
+        autocorrelation[: wh_truncation + 1], response_increment[: wh_truncation + 1]
+    )
+    kernel_increment = np.full(max_lag + 1, np.nan)
+    kernel_increment[: wh_truncation + 1] = kernel_increment_trunc
+    propagator_trunc = propagator_from_kernel(kernel_increment_trunc)
+    propagator = np.full(max_lag + 1, np.nan)
+    propagator[: wh_truncation + 1] = propagator_trunc
+
+    return LinearPropagatorResult(
+        lags=np.arange(max_lag + 1),
+        autocorrelation=autocorrelation,
+        response_increment=response_increment,
+        response_function=response_function,
+        kernel_increment=kernel_increment,
+        propagator=propagator,
+    )
+
+
+def estimate_linear_propagator_mc_streaming(
+    simulations: Iterable[SFKSimulation], max_lag: int, wh_truncation: int | None = None
+) -> LinearPropagatorResult:
+    """Streaming Monte Carlo version of estimate_linear_propagator_mc.
+
+    Consumes ``simulations`` one sample path at a time (e.g. from
+    data.generate_synthetic.iter_sfk_samples), accumulating the running sums
+    needed for the across-path average of C(tau) and S(tau) in Eq. (4a)
+    without holding more than one sample path in memory simultaneously. This
+    is numerically identical to estimate_linear_propagator_mc applied to the
+    materialized list, since both average the per-path estimators before the
+    single Wiener-Hopf solve.
+
+    Args:
+        simulations: Iterable (list or generator) of independent SFK sample
+            paths (same alpha, delta).
+        max_lag: Largest lag tau at which C(tau) and S(tau) are estimated.
+        wh_truncation: Truncation N_max of the Wiener-Hopf sum; see
+            estimate_linear_propagator.
+
+    Returns:
+        A LinearPropagatorResult built from the across-path average of C, S.
+    """
+    if wh_truncation is None:
+        wh_truncation = max_lag
+    if wh_truncation > max_lag:
+        raise ValueError("wh_truncation cannot exceed max_lag")
+
+    autocorrelation_sum = np.zeros(max_lag + 1)
+    response_increment_sum = np.zeros(max_lag + 1)
+    n_paths = 0
+    for sim in simulations:
+        signs = sim.signs.astype(np.float64)
+        autocorrelation_sum += sample_autocorrelation(signs, max_lag)
+        response_increment_sum += sample_cross_correlation(signs, sim.increments, max_lag)
+        n_paths += 1
+    if n_paths == 0:
+        raise ValueError("simulations must be a non-empty iterable")
+
+    autocorrelation = autocorrelation_sum / n_paths
+    response_increment = response_increment_sum / n_paths
     response_function = np.concatenate(([0.0], np.cumsum(response_increment)[:-1]))
 
     kernel_increment_trunc = solve_wiener_hopf(
